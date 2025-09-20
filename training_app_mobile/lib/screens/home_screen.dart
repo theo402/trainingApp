@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/exercise_provider.dart';
+import '../widgets/sync_status_indicator.dart';
+import '../services/simple_local_storage_service.dart';
+import '../services/simple_sync_service.dart';
 import 'exercises_screen.dart';
 import 'exercise_types_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,8 +29,16 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ExerciseProvider>(context, listen: false).loadExercises();
-      Provider.of<ExerciseProvider>(context, listen: false).loadExerciseTypes();
+      final exerciseProvider = Provider.of<ExerciseProvider>(context, listen: false);
+      final localStorageService = Provider.of<SimpleLocalStorageService>(context, listen: false);
+      final syncService = Provider.of<SimpleSyncService>(context, listen: false);
+
+      // Initialize provider with services
+      exerciseProvider.initialize(localStorageService, syncService);
+
+      // Load data (offline-first)
+      exerciseProvider.loadExercises();
+      exerciseProvider.loadExerciseTypes();
     });
   }
 
@@ -35,7 +47,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Training App'),
+        centerTitle: true,
         actions: [
+          // Manual sync button
+          const ManualSyncButton(),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
           PopupMenuButton<String>(
             onSelected: (value) async {
               if (value == 'logout') {
@@ -71,7 +96,22 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _screens[_selectedIndex],
+      body: Stack(
+        children: [
+          _screens[_selectedIndex],
+          // Sync status indicator positioned at top center
+          Positioned(
+            top: 16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: const SyncStatusIndicator(),
+            ),
+          ),
+          // Floating sync status for errors and syncing states
+          const SyncStatusFloatingIndicator(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {

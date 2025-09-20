@@ -1,4 +1,4 @@
--- Initial schema for Training App
+-- Initial schema for Training App (Regular PostgreSQL version)
 -- Users table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,7 +61,7 @@ CREATE TABLE exercises (
     deleted_at TIMESTAMPTZ NULL
 );
 
--- Sensor time series table (TimescaleDB hypertable)
+-- Sensor time series table (Regular PostgreSQL table)
 CREATE TABLE sensor_timeseries (
     time TIMESTAMPTZ NOT NULL,
     user_id UUID NOT NULL REFERENCES users(id),
@@ -71,9 +71,6 @@ CREATE TABLE sensor_timeseries (
     unit VARCHAR(20),
     metadata JSONB DEFAULT '{}'
 );
-
--- Convert to TimescaleDB hypertable
-SELECT create_hypertable('sensor_timeseries', 'time');
 
 -- Add indexes for performance
 CREATE INDEX idx_users_email ON users(email) WHERE deleted_at IS NULL;
@@ -92,7 +89,7 @@ CREATE INDEX idx_exercises_exercise_type_id ON exercises(exercise_type_id) WHERE
 CREATE INDEX idx_exercises_workout_id ON exercises(workout_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_exercises_performed_at ON exercises(performed_at) WHERE deleted_at IS NULL;
 
--- TimescaleDB indexes for sensor data
+-- Regular PostgreSQL indexes for sensor data
 CREATE INDEX idx_sensor_timeseries_user_id_time ON sensor_timeseries(user_id, time DESC);
 CREATE INDEX idx_sensor_timeseries_exercise_id_time ON sensor_timeseries(exercise_id, time DESC);
 CREATE INDEX idx_sensor_timeseries_sensor_type_time ON sensor_timeseries(sensor_type, time DESC);

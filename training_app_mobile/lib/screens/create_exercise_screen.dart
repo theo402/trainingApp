@@ -16,7 +16,6 @@ class CreateExerciseScreen extends StatefulWidget {
 class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
 
   ExerciseType? _selectedExerciseType;
   final Map<String, dynamic> _metadata = {};
@@ -28,8 +27,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   void initState() {
     super.initState();
     if (_isEditing) {
-      _nameController.text = widget.exercise!.name;
-      _descriptionController.text = widget.exercise!.description ?? '';
+      _nameController.text = widget.exercise!.name ?? '';
       _metadata.addAll(widget.exercise!.metadata);
 
       // Find the exercise type
@@ -50,7 +48,6 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
     for (final controller in _metadataControllers.values) {
       controller.dispose();
     }
@@ -60,7 +57,7 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   void _initializeMetadataControllers() {
     if (_selectedExerciseType == null) return;
 
-    final properties = _selectedExerciseType!.getProperties();
+    final properties = _selectedExerciseType!.properties;
 
     // Clear existing controllers
     for (final controller in _metadataControllers.values) {
@@ -101,8 +98,8 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
 
     // Validate and collect metadata
     final metadata = <String, dynamic>{};
-    final properties = _selectedExerciseType!.getProperties();
-    final required = _selectedExerciseType!.getRequiredFields();
+    final properties = _selectedExerciseType!.properties;
+    final required = _selectedExerciseType!.requiredFields;
 
     for (final property in properties.entries) {
       final key = property.key;
@@ -154,9 +151,6 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
     if (_isEditing) {
       final request = UpdateExerciseRequest(
         name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
         exerciseTypeId: _selectedExerciseType!.id,
         metadata: metadata,
       );
@@ -164,9 +158,6 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
     } else {
       final request = CreateExerciseRequest(
         name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
         exerciseTypeId: _selectedExerciseType!.id,
         metadata: metadata,
       );
@@ -242,15 +233,6 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 16),
                     Consumer<ExerciseProvider>(
                       builder: (context, exerciseProvider, child) {
                         if (exerciseProvider.exerciseTypes.isEmpty) {
@@ -281,20 +263,29 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
                           items: exerciseProvider.exerciseTypes.map((exerciseType) {
                             return DropdownMenuItem(
                               value: exerciseType,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(exerciseType.name),
-                                  if (exerciseType.category != null)
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
                                     Text(
-                                      exerciseType.category!,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                      ),
+                                      exerciseType.name,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
                                     ),
-                                ],
+                                    if (exerciseType.category != null)
+                                      Text(
+                                        exerciseType.category!,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                  ],
+                                ),
                               ),
                             );
                           }).toList(),
@@ -324,8 +315,8 @@ class _CreateExerciseScreenState extends State<CreateExerciseScreen> {
   }
 
   Widget _buildMetadataFields() {
-    final properties = _selectedExerciseType!.getProperties();
-    final required = _selectedExerciseType!.getRequiredFields();
+    final properties = _selectedExerciseType!.properties;
+    final required = _selectedExerciseType!.requiredFields;
 
     if (properties.isEmpty) {
       return const SizedBox.shrink();

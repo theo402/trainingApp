@@ -281,7 +281,7 @@ class _ExerciseCard extends StatelessWidget {
           ),
         ),
         title: Text(
-          exercise.name,
+          exercise.name ?? exercise.exerciseTypeName,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -289,14 +289,6 @@ class _ExerciseCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (exercise.description != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                exercise.description!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
             const SizedBox(height: 4),
             Row(
               children: [
@@ -429,7 +421,7 @@ class _ExerciseCard extends StatelessWidget {
 
                 // Title
                 Text(
-                  exercise.name,
+                  exercise.name ?? exercise.exerciseTypeName,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -452,21 +444,6 @@ class _ExerciseCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Description
-                if (exercise.description != null) ...[
-                  Text(
-                    'Description',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    exercise.description!,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                ],
 
                 // Metadata
                 if (exercise.metadata.isNotEmpty) ...[

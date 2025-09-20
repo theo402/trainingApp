@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
-  static const String baseUrl = 'http://localhost:3000/api'; // Change this to your backend URL
+  static const String baseUrl = 'http://100.99.90.120:3000/api'; // Training server on Tailscale
   static const String tokenKey = 'auth_token';
 
   late final Dio _dio;

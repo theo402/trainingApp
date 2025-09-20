@@ -114,4 +114,33 @@ class AuthProvider extends ChangeNotifier {
       await logout();
     }
   }
+
+  /// Demo/offline login for testing without backend
+  Future<AuthResult> loginDemo() async {
+    _isLoading = true;
+    notifyListeners();
+
+    // Create a demo user
+    final demoUser = User(
+      id: 'demo-user-id',
+      email: 'demo@example.com',
+      firstName: 'Demo',
+      lastName: 'User',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    _user = demoUser;
+    _isAuthenticated = true;
+    _isLoading = false;
+    notifyListeners();
+
+    return AuthResult(success: true, user: demoUser, token: 'demo-token');
+  }
+
+  /// Add demo data for testing
+  Future<void> addDemoData() async {
+    // This will be called after demo login to populate with sample data
+    // You can implement this to add sample exercises and exercise types
+  }
 }

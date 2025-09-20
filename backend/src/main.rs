@@ -53,7 +53,9 @@ async fn main() {
         ));
     }
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], config.port));
+    let addr = format!("{}:{}", config.host, config.port)
+        .parse::<SocketAddr>()
+        .expect("Invalid host or port configuration");
     tracing::info!("Server running on http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

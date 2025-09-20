@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/simple_local_storage_service.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -40,6 +41,19 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<void> _loginDemo() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.loginDemo();
+
+    // Add demo data to local storage
+    try {
+      final localStorageService = Provider.of<SimpleLocalStorageService>(context, listen: false);
+      await localStorageService.addDemoData();
+    } catch (e) {
+      // Ignore errors in demo data setup
     }
   }
 
@@ -138,6 +152,21 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: authProvider.isLoading
                                 ? const CircularProgressIndicator(color: Colors.white)
                                 : const Text('Login'),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Demo Login Button
+                    Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: authProvider.isLoading ? null : _loginDemo,
+                            icon: const Icon(Icons.play_circle_outline),
+                            label: const Text('Demo Login (Offline)'),
                           ),
                         );
                       },

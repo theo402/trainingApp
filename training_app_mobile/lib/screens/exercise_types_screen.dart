@@ -168,8 +168,8 @@ class _ExerciseTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final requiredFields = exerciseType.getRequiredFields();
-    final properties = exerciseType.getProperties();
+    final requiredFields = exerciseType.requiredFields;
+    final properties = exerciseType.properties;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

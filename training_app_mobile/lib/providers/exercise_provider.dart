@@ -3,10 +3,15 @@ import '../models/exercise.dart';
 import '../models/exercise_type.dart';
 import '../services/exercise_service.dart';
 import '../services/exercise_type_service.dart';
+import '../services/simple_local_storage_service.dart';
+import '../services/simple_sync_service.dart';
 
 class ExerciseProvider extends ChangeNotifier {
   final ExerciseService _exerciseService = ExerciseService();
   final ExerciseTypeService _exerciseTypeService = ExerciseTypeService();
+
+  SimpleLocalStorageService? _localStorageService;
+  SimpleSyncService? _syncService;
 
   List<Exercise> _exercises = [];
   List<ExerciseType> _exerciseTypes = [];
@@ -25,6 +30,12 @@ class ExerciseProvider extends ChangeNotifier {
   String? get selectedCategory => _selectedCategory;
   String? get selectedExerciseTypeId => _selectedExerciseTypeId;
 
+  // Initialize with local storage and sync service
+  void initialize(SimpleLocalStorageService localStorageService, SimpleSyncService syncService) {
+    _localStorageService = localStorageService;
+    _syncService = syncService;
+  }
+
   Future<void> loadExercises({
     String? category,
     String? exerciseTypeId,
@@ -37,10 +48,47 @@ class ExerciseProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _exercises = await _exerciseService.getExercises(
-        category: category,
-        exerciseTypeId: exerciseTypeId,
-      );
+      // Always load from local storage first (offline-first approach)
+      if (_localStorageService != null) {
+        _exercises = await _localStorageService!.getExercises(
+          category: category,
+          exerciseTypeId: exerciseTypeId,
+        );
+        _isLoading = false;
+        notifyListeners();
+      }
+
+      // Try to sync in background if online
+      if (_syncService != null && !refresh) {
+        _syncService!.syncAll().catchError((e) {
+          // Silent background sync failure
+          debugPrint('Background sync failed: $e');
+        });
+      }
+
+      // If refresh requested or no local data, try API
+      if (refresh || _exercises.isEmpty) {
+        try {
+          final apiExercises = await _exerciseService.getExercises(
+            category: category,
+            exerciseTypeId: exerciseTypeId,
+          );
+
+          // Save to local storage
+          if (_localStorageService != null) {
+            for (final exercise in apiExercises) {
+              await _localStorageService!.saveExercise(exercise, markForSync: false);
+            }
+          }
+
+          _exercises = apiExercises;
+        } catch (e) {
+          // If API fails but we have local data, that's okay
+          if (_exercises.isEmpty) {
+            _error = e.toString();
+          }
+        }
+      }
     } catch (e) {
       _error = e.toString();
     }
@@ -53,8 +101,34 @@ class ExerciseProvider extends ChangeNotifier {
     if (_exerciseTypes.isNotEmpty && !refresh) return;
 
     try {
-      _exerciseTypes = await _exerciseTypeService.getExerciseTypes();
-      notifyListeners();
+      // Load from local storage first
+      if (_localStorageService != null) {
+        _exerciseTypes = await _localStorageService!.getExerciseTypes();
+        notifyListeners();
+      }
+
+      // If refresh requested or no local data, try API
+      if (refresh || _exerciseTypes.isEmpty) {
+        try {
+          final apiTypes = await _exerciseTypeService.getExerciseTypes();
+
+          // Save to local storage
+          if (_localStorageService != null) {
+            for (final exerciseType in apiTypes) {
+              await _localStorageService!.saveExerciseType(exerciseType, markForSync: false);
+            }
+          }
+
+          _exerciseTypes = apiTypes;
+          notifyListeners();
+        } catch (e) {
+          // If API fails but we have local data, that's okay
+          if (_exerciseTypes.isEmpty) {
+            _error = e.toString();
+            notifyListeners();
+          }
+        }
+      }
     } catch (e) {
       _error = e.toString();
       notifyListeners();
@@ -63,9 +137,38 @@ class ExerciseProvider extends ChangeNotifier {
 
   Future<Exercise?> createExercise(CreateExerciseRequest request) async {
     try {
-      final exercise = await _exerciseService.createExercise(request);
+      // Create locally first with generated ID
+      final exercise = Exercise(
+        id: _localStorageService?.generateId() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        userId: 'current-user', // You'd get this from auth
+        exerciseTypeId: request.exerciseTypeId,
+        exerciseTypeName: 'Unknown', // You'd fetch this
+        exerciseTypeCategory: null,
+        workoutId: request.workoutId,
+        name: request.name,
+        notes: request.notes,
+        metadata: request.metadata ?? {},
+        performedAt: request.performedAt ?? DateTime.now(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Save to local storage
+      if (_localStorageService != null) {
+        await _localStorageService!.saveExercise(exercise, markForSync: true);
+      }
+
+      // Add to local list
       _exercises.insert(0, exercise);
       notifyListeners();
+
+      // Try to sync in background
+      if (_syncService != null) {
+        _syncService!.syncAll().catchError((e) {
+          debugPrint('Background sync after create failed: $e');
+        });
+      }
+
       return exercise;
     } catch (e) {
       _error = e.toString();

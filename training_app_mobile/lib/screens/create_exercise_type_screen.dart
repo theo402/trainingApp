@@ -31,8 +31,8 @@ class _CreateExerciseTypeScreenState extends State<CreateExerciseTypeScreen> {
       _categoryController.text = widget.exerciseType!.category ?? '';
 
       // Load existing metadata fields
-      final properties = widget.exerciseType!.getProperties();
-      final required = widget.exerciseType!.getRequiredFields();
+      final properties = widget.exerciseType!.properties;
+      final required = widget.exerciseType!.requiredFields;
 
       for (final property in properties.entries) {
         _metadataFields.add(MetadataField(
